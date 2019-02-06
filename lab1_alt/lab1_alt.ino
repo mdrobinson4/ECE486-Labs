@@ -28,14 +28,15 @@ void loop() {
       toggle = 1; // Update the toggle variable to specify that this case has occurred
       digitalWrite(LED_BUILTIN, LOW);
       digitalWrite(ledPin, HIGH);
+      delay(1000);
     }
     // if toggle is set to 1 turn led13 on and turn led4 off
     else if (toggle == 1) {
       toggle = 0; // Update the toggle variable to specify that this case has occurred
       digitalWrite(LED_BUILTIN, HIGH);
       digitalWrite(ledPin, LOW);
+      delay(2000);
     }
-    delay(2000);  // delay for 2 seconds
   }
   // Check to see if the user inputted s into the serial monitor
   else if (currVal == 's') {
