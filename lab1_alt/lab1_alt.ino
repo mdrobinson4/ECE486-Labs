@@ -1,7 +1,7 @@
 
-char currVal = 's';
-int toggle = 0;
-int ledPin = 4;
+char currVal = 's'; // last read value from serial window
+int toggle = 0; // Used to toggle the leds
+int ledPin = 4; // off-board led
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -28,14 +28,14 @@ void loop() {
       toggle = 1; // Update the toggle variable to specify that this case has occurred
       digitalWrite(LED_BUILTIN, LOW);
       digitalWrite(ledPin, HIGH);
-      delay(1000);
+      delay(1000);  // Turn on-board led on for 2 seconds
     }
     // if toggle is set to 1 turn led13 on and turn led4 off
     else if (toggle == 1) {
       toggle = 0; // Update the toggle variable to specify that this case has occurred
       digitalWrite(LED_BUILTIN, HIGH);
       digitalWrite(ledPin, LOW);
-      delay(2000);
+      delay(2000); //Turn off-board led on for 1 second
     }
   }
   // Check to see if the user inputted s into the serial monitor
