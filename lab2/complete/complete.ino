@@ -18,36 +18,33 @@ void setup() {
 
 void loop() {
   int ledPin = 12; // off-board led
-  // constants won't change. They're used here to set pin numbers:
   const int buttonPin = 2;    // the number of the pushbutton pin
   
-  // Variables will change:
-  int ledState = HIGH;         // the current state of the output pin
-  int buttonState;             // the current reading from the input pin
-  int lastButtonState = LOW;   // the previous reading from the input pin
-  char hex = '0';
-  // the following variables are unsigned longs because the time, measured in
-  // milliseconds, will quickly become a bigger number than can be stored in an int.
-  unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-  unsigned long debounceDelay = 100;    // the debounce time; increase if the output flickers
+  int ledState = LOW;         // the current state of the output pin
+  int buttonState = digitalRead(buttonPin);             // the current reading from the input pin
+  int lastButtonState = (buttonState == HIGH) ? LOW : HIGH;   // the previous reading from the input pin
+  int off = buttonState;
+  char hex = ' ';
   int value = 0;
+  
+  Serial.println(buttonState);
+  bcd.display(0);
+  Serial.print("Count = (Decimal) ");
+  Serial.print(value);
+  Serial.print(" (Hex) ");
+  Serial.println(hex);
 
   while(1) {
     // read the state of the switch into a local variable:
-    int reading = digitalRead(buttonPin);
- 
-     if (reading != buttonState) {
+    int reading = digitalRead(buttonPin); 
+    if (reading != buttonState) {
       buttonState = reading;
       value += 1;
       if (value > 9) {
         hex = getHex(value);
-      }
-        
+      }  
       else
         hex = ' ';
-
-      if (buttonState == 0 && value == 1)
-        value = 0;
       bcd.display(value);
       Serial.print("Count = (Decimal) ");
       if (value < 10)
@@ -57,11 +54,10 @@ void loop() {
       hex = ' ';
     }
     lastButtonState = reading;
-    if (buttonState == HIGH)
+    if (buttonState != off)
       blink(reading, buttonState);
     else
       delay(15);
-      
     if (value == 15)
       value = 0;
   }
