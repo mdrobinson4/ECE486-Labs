@@ -69,7 +69,7 @@ void loop() {
       delay(15);
     // Reset the state change variable if it has reached 15
     if (value == 15) 
-      value = -1;
+      value = 0;
   }
 }
 
