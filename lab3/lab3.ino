@@ -11,6 +11,11 @@
 // Initialize 4-segment display object
 fourDigitDisplay bcd;
 
+/*Name: watchdogSetup
+ * Inputs: void
+ * Outputs: void
+ * Functions: Sets the watchdog timer to 4 seconds
+ */
 void watchdogSetup(void) {
  cli();
  wdt_reset();

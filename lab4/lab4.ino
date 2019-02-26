@@ -11,6 +11,11 @@
 // Initialize 4-segment display object
 fourDigitDisplay bcd;
 
+/*Name: watchdogSetup
+ * Inputs: void
+ * Outputs: void
+ * Functions: Sets the watchdog timer to 4 seconds
+ */
 void watchdogSetup(void) {
  cli();
  wdt_reset();
@@ -25,10 +30,9 @@ void watchdogSetup(void) {
  sei();
 }
 
-unsigned long time;
-
 void setup() {
   Serial.begin(9600);
+  Serial.println("Board Was Reset");
   reset();
   watchdogSetup();  // Configures watchdog timer
 }
@@ -38,7 +42,6 @@ void loop() {
   int potPin = 0;
   
   while(1) {
-    //Serial.println(decToHexa(1));
     while (Serial.available() > 0) {
       wdt_reset();
       char inChar = Serial.read();
@@ -60,15 +63,28 @@ void loop() {
   }
 }
 
+/*Name: reset
+ * Inputs: void
+ * Outputs: void
+ * Functions: Displays the welcome message
+ */
 void reset() {
-  Serial.println("Board Was Reset");
   Serial.println("Enter 'c' To Start A Set Of Conversions");
   Serial.println();
+  wdt_reset();
   return;
 }
 
+/*Name: convert
+ * Inputs: void
+ * Outputs: void
+ * Functions: Reads the analog value at the potentiometer,
+ * converts it to a digital value, and displays the values
+ * in hex and the time it took to convert
+ */
 void convert(int potPin) {
   unsigned long tempTime[30];
+  char hex[50] = {0};
   for (int i = 0; i < 30; i++) {
     wdt_reset();
     tempTime[i] = micros();
@@ -76,59 +92,28 @@ void convert(int potPin) {
     tempTime[i] = micros() - tempTime[i];
     Serial.print("#");
     Serial.print(i + 1);
-    Serial.print(": digital value = ");
-    Serial.print(value, HEX );
-    Serial.print(" ---- ");
-    Serial.print(value, DEC);
-    Serial.print(" Time = ");
+    Serial.print(":   digital value = ");
+    sprintf(hex, "%03X", value);
+    Serial.print(hex);
+    Serial.print("    Time = ");
     Serial.print(tempTime[i]);
     Serial.println(" usecs");
     Serial.println();
     delay(1000);
   }
-  int avg = 0;
+  unsigned long avg = 0;
   for (int i = 0; i < 30; i++) {
     wdt_reset();
     avg += tempTime[i];
   }
   Serial.print("avg conversion time = ");
-  Serial.print(avg / 30);
+  Serial.print((unsigned long)avg / 30.00);
   Serial.println(" usecs");
   Serial.println();
+  while (Serial.available() > 0) {
+    Serial.read();
+    wdt_reset();
+  }
+  wdt_reset();
+  reset();
 }
-
-// function to convert decimal to hexadecimal 
-String decToHexa(int n) { 
-    // char array to store hexadecimal number 
-    char hexaDeciNum[100]; 
-      
-    // counter for hexadecimal number array 
-    int i = 0; 
-    while(n!=0) 
-    {    
-        // temporary variable to store remainder 
-        int temp  = 0; 
-          
-        // storing remainder in temp variable. 
-        temp = n % 16; 
-          
-        // check if temp < 10 
-        if(temp < 10) 
-        { 
-            hexaDeciNum[i] = temp + 48; 
-            i++; 
-        } 
-        else
-        { 
-            hexaDeciNum[i] = temp + 55; 
-            i++; 
-        } 
-          
-        n = n/16; 
-    } 
-    String hex = "";
-    // printing hexadecimal number array in reverse order 
-    for(int j=i-1; j>=0; j--) 
-        hex += hexaDeciNum[j]; 
-    return hex;
-} 
