@@ -3,6 +3,7 @@
  * Lab: Lab 3
  * Date: February 25, 2019
  */
+ int flag = 0;
 
 #include <avr/wdt.h>
 #include <fourDigitDisplay.h>
@@ -31,7 +32,7 @@ void setup() {
 }
 
 void loop() {
-  restart();  // Blinks the decimal for five seconds
+  //restart();  // Blinks the decimal for five seconds
   start();  // Shows welcome message
   while (Serial.available() > 0)  // Gets rid of erraneous input
     Serial.read();
@@ -39,8 +40,15 @@ void loop() {
   String inString = "";    // string to hold input
 
   while(1) {
+    if (flag == 1) {
+      flag++;
+      Serial.println("Sorry, Time Ran Out!");
+      while (Serial.available() > 0)
+        Serial.read();
+      restart();
+    }
     // Read serial input:
-    while (Serial.available() > 0) {
+    while (Serial.available() > 0 && flag == 0) {
       wdt_reset();
       int inChar = Serial.read();
       if (isDigit(inChar)) {
@@ -112,7 +120,8 @@ void start() {
   Serial.println();
   Serial.println("Please Enter An Integer In The Range OF [0 - 15]");
   Serial.println("The Value Will Be Displayed In Hexidecimal");
-  Serial.println("The Value Being Displayed On The 7-Segment Display Is A Hexidecimal Value If The Period Is Lit");
+  Serial.println("The Value Being Displayed On The 7-Segment Display ");
+  Serial.println("Is A Hexidecimal Value If The Period Is Lit");
   Serial.println();
   Serial.println();
 }
@@ -131,7 +140,6 @@ void restart() {
     delay(500);
     wdt_reset();
   }
-  wdtFlag = 0;
   wdt_reset();
   bcd.clear();
   return;
@@ -144,5 +152,5 @@ void restart() {
  * Timer rand out
  */
 ISR(WDT_vect){
-  Serial.println("Sorry, Time Ran Out!");
+  flag = 1;
 }
