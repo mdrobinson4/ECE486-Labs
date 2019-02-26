@@ -75,6 +75,10 @@ void loop() {
           invalid(String(input));
           inString = "";
         }
+        else if (String(inString) == "") {
+          invalid(" ");
+          inString = "";
+        }
         else {
           if (input > 9)
             valid(String(input, HEX));
@@ -123,10 +127,13 @@ void valid(String input) {
 void start() {
   bcd.startUp();
   Serial.println();
+  Serial.println("___________________________________________________");
+  Serial.println();
   Serial.println("Please Enter An Integer In The Range OF [0 - 15]");
   Serial.println("The Value Will Be Displayed In Hexidecimal");
   Serial.println("The Value Being Displayed On The 7-Segment Display ");
   Serial.println("Is A Hexidecimal Value If The Period Is Lit");
+  Serial.println("___________________________________________________");
   Serial.println();
   Serial.println();
 }
