@@ -6,10 +6,6 @@
 
 
 #include <avr/wdt.h>
-#include <fourDigitDisplay.h>
-
-// Initialize 4-segment display object
-fourDigitDisplay bcd;
 
 /*Name: watchdogSetup
  * Inputs: void
