@@ -1,75 +1,62 @@
 /*Author: Mark Robinson
- * CWID: 11635959
- * Lab: Lab 5
- * Date: March 7, 2019
- */
+   CWID: 11635959
+   Lab: Lab 5
+   Date: March 7, 2019
+*/
 
+#define potPin 0;
 
 #include <avr/wdt.h>
 
 /*Name: watchdogSetup
- * Inputs: void
- * Outputs: void
- * Functions: Sets the watchdog timer to 4 seconds
- */
+   Inputs: void
+   Outputs: void
+   Functions: Sets the watchdog timer to 4 seconds
+*/
 void watchdogSetup(void) {
- cli();
- wdt_reset();
- 
- // Enter Watchdog Configuration mode:
- WDTCSR |= (1<<WDCE) | (1<<WDE);
- // Set Watchdog settings:
- WDTCSR = (1<<WDIE) | (1<<WDE) |
- (1<<WDP3) | (0<<WDP2) | (0<<WDP1) |
- (0<<WDP0);
+  cli();
+  wdt_reset();
 
- sei();
+  // Enter Watchdog Configuration mode:
+  WDTCSR |= (1 << WDCE) | (1 << WDE);
+  // Set Watchdog settings:
+  WDTCSR = (1 << WDIE) | (1 << WDE) |
+           (1 << WDP3) | (0 << WDP2) | (0 << WDP1) |
+           (0 << WDP0);
+  sei();
 }
 
 /*Name: adc_int
- * Inputs: void
- * Outputs: void
- * Functions: Initializes the analog to digital converter
- */
+   Inputs: void
+   Outputs: void
+   Functions: Initializes the analog to digital converter
+*/
 void adc_init() {
   // AREF = AVcc
-  ADMUX = (1<<REFS0);
- 
+  ADMUX = (1 << REFS0);
+
   // ADC Enable and prescaler of 128
   // 16000000/128 = 125000
-  ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
+  ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
 }
 
 /*Name: adc_read
- * Inputs: uint8_t
- * Outputs: uint16_t
- * Functions: Returns the ADC value using polling
- */
-uint16_t adc_read(uint8_t ch){
-  //Serial.println("USING POLLING METHOD");
-  // select the corresponding channel 0~7
-  // ANDing with ’7′ will always keep the value
-  // of ‘ch’ between 0 and 7
-  //ch &= 0b00000111;  // AND operation with 7
-  ADMUX = (ADMUX)|ch; // clears the bottom 3 bits before ORing
- 
-  // start single convertion
-  // write ’1′ to ADSC
-  ADCSRA |= (1<<ADSC);
- 
-  // wait for conversion to complete
-  // ADSC becomes ’0′ again
-  // till then, run loop continuously
-  while(ADCSRA & (1<<ADIF))
+   Inputs: uint8_t
+   Outputs: uint16_t
+   Functions: Returns the ADC value using polling
+*/
+uint16_t adc_read(uint8_t pin) {
+    ADMUX = (ADMUX)|pin; // clears the bottom 3 bits before ORing
+    while(ADCSRA & (1<<ADSC))
     wdt_reset();
-  return (ADC);
+    //value = (ADC);
 }
 
 /*Name: startMessage
- * Inputs: char method
- * Outputs: void
- * Functions: Displays the ADC method
- */
+   Inputs: char method
+   Outputs: void
+   Functions: Displays the ADC method
+*/
 void startMessage(char method) {
   if (method == 'a')
     Serial.println("Starting a set of conversions using analogRead()");
@@ -88,11 +75,10 @@ void setup() {
 
 void loop() {
   String inString = "";
-  int potPin = 0;
   float polling[] = {0, 0}; // [ pollingCount, pollingTime ]
   float analog[] = {0, 0};  // [ analogReadCount, analogReadTime]
-  
-  while(1) {
+
+  while (1) {
     while (Serial.available() > 0) {
       wdt_reset();
       char inChar = Serial.read();
@@ -102,7 +88,7 @@ void loop() {
       // if you get a newline, print the string, then the string's value:
       else if (inChar == '\n') {
         if (inString.length() == 1 && (inString[0] == 'a' || inString[0] == 'b')) {
-          convert(potPin, inString[0], polling, analog);
+          convert(inString[0], polling, analog);
         }
         else {
           Serial.println("Error: invalid user input - the only valid user input is 'c' or 'b')");
@@ -115,10 +101,10 @@ void loop() {
 }
 
 /*Name: reset
- * Inputs: void
- * Outputs: void
- * Functions: Displays the welcome message
- */
+   Inputs: void
+   Outputs: void
+   Functions: Displays the welcome message
+*/
 void reset() {
   Serial.println("Select a type of conversion to perform ('a' for lab #4, 'b' for lab #5)");
   Serial.println();
@@ -127,29 +113,41 @@ void reset() {
 }
 
 /*Name: convert
- * Inputs: void
- * Outputs: void
- * Functions: Reads the analog value at the potentiometer,
- * converts it to a digital value, and displays the values
- * in hex and the time it took to convert
- */
-void convert(int potPin, char method, float polling[], float analog[]) {
+   Inputs: void
+   Outputs: void
+   Functions: Reads the analog value at the potentiometer,
+   converts it to a digital value, and displays the values
+   in hex and the time it took to convert
+*/
+void convert(char method, float polling[], float analog[]) {
   startMessage(method);
   float tempTime[30];
   int value = 0;
   char hex[50] = {0};
   for (int i = 0; i < 30; i++) {
     wdt_reset();
-    tempTime[i] = micros();
-
-    if (method == 'a')
-      value = analogRead(potPin);
-    else if (method == 'b')
-      value = adc_read(0);
-    
-    tempTime[i] = micros() - tempTime[i];
-    //Serial.println(tempTime[i]);
-    
+    if (method == 'a') {
+      tempTime[i] = micros();
+      value = analogRead(0);
+      tempTime[i] = micros() - tempTime[i];
+    }
+    else if (method == 'b') {
+      int ch = 0;
+      ch &= 0b00000111;  // AND operation with 7
+      ADMUX = (ADMUX & 0xF8)|ch; // clears the bottom 3 bits before ORing
+     
+      // start single convertion
+      // write ’1′ to ADSC
+      ADCSRA |= (1<<ADSC);
+     
+      // wait for conversion to complete
+      // ADSC becomes ’0′ again
+      // till then, run loop continuously
+      tempTime[i] = micros();
+      while(ADCSRA & (1<<ADSC));
+      tempTime[i] = micros() - tempTime[i];
+      value = ADC;
+    }
     Serial.print("#");
     Serial.print(i + 1);
     Serial.print(":   digital value = ");
@@ -185,7 +183,7 @@ void convert(int potPin, char method, float polling[], float analog[]) {
     polling[0] += 1.00;
     polling[1] += avg;
   }
-  
+
   Serial.println("TOTALS");
   Serial.print("analogRead() Average Conversion Time = ");
   if (analog[0] == 0)
