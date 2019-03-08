@@ -1,7 +1,7 @@
 /*Author: Mark Robinson
  * CWID: 11635959
  * Lab: Lab 5
- * Date: March 6, 2019
+ * Date: March 7, 2019
  */
 
 
@@ -46,11 +46,12 @@ void adc_init() {
  * Functions: Returns the ADC value using polling
  */
 uint16_t adc_read(uint8_t ch){
+  //Serial.println("USING POLLING METHOD");
   // select the corresponding channel 0~7
   // ANDing with ’7′ will always keep the value
   // of ‘ch’ between 0 and 7
-  ch &= 0b00000111;  // AND operation with 7
-  ADMUX = (ADMUX & 0xF8)|ch; // clears the bottom 3 bits before ORing
+  //ch &= 0b00000111;  // AND operation with 7
+  ADMUX = (ADMUX)|ch; // clears the bottom 3 bits before ORing
  
   // start single convertion
   // write ’1′ to ADSC
@@ -59,7 +60,7 @@ uint16_t adc_read(uint8_t ch){
   // wait for conversion to complete
   // ADSC becomes ’0′ again
   // till then, run loop continuously
-  while(ADCSRA & (1<<ADSC))
+  while(ADCSRA & (1<<ADIF))
     wdt_reset();
   return (ADC);
 }
@@ -88,8 +89,8 @@ void setup() {
 void loop() {
   String inString = "";
   int potPin = 0;
-  unsigned long polling[] = {0, 0}; // [ pollingCount, pollingTime ]
-  unsigned long analog[] = {0, 0};  // [ analogReadCount, analogReadTime]
+  float polling[] = {0, 0}; // [ pollingCount, pollingTime ]
+  float analog[] = {0, 0};  // [ analogReadCount, analogReadTime]
   
   while(1) {
     while (Serial.available() > 0) {
@@ -132,9 +133,9 @@ void reset() {
  * converts it to a digital value, and displays the values
  * in hex and the time it took to convert
  */
-void convert(int potPin, char method, long unsigned polling[], long unsigned analog[]) {
+void convert(int potPin, char method, float polling[], float analog[]) {
   startMessage(method);
-  unsigned long tempTime[30];
+  float tempTime[30];
   int value = 0;
   char hex[50] = {0};
   for (int i = 0; i < 30; i++) {
@@ -147,25 +148,27 @@ void convert(int potPin, char method, long unsigned polling[], long unsigned ana
       value = adc_read(0);
     
     tempTime[i] = micros() - tempTime[i];
+    //Serial.println(tempTime[i]);
+    
     Serial.print("#");
     Serial.print(i + 1);
     Serial.print(":   digital value = ");
     sprintf(hex, "%03X", value);
     Serial.print(hex);
     Serial.print("    Time = ");
-    Serial.print(tempTime[i]);
+    Serial.print((int)tempTime[i]);
     Serial.println(" usecs");
     Serial.println();
     delay(500);
   }
-  unsigned long avg = 0;
+  float avg = 0.00;
   for (int i = 0; i < 30; i++) {
     wdt_reset();
     avg += tempTime[i];
   }
-  avg = (unsigned long) avg / 30.00;
+  avg = (float) avg / 30.00;
   Serial.print("avg conversion time = ");
-  Serial.print((unsigned long)avg);
+  Serial.print((float)avg, 2);
   Serial.println(" usecs");
   Serial.println();
   while (Serial.available() > 0) {
@@ -188,9 +191,9 @@ void convert(int potPin, char method, long unsigned polling[], long unsigned ana
   if (analog[0] == 0)
     Serial.println("NA (0 total conversions)");
   else {
-    Serial.print((unsigned long)analog[1] / analog[0]);
-    Serial.print(" (");
-    Serial.print(analog[0]);
+    Serial.print((float)analog[1] / (float)analog[0]);
+    Serial.print(" usecs (");
+    Serial.print((int)analog[0]);
     Serial.println(" total conversions)");
   }
 
@@ -198,9 +201,9 @@ void convert(int potPin, char method, long unsigned polling[], long unsigned ana
   if (polling[0] == 0)
     Serial.println("NA (0 total conversions)");
   else {
-    Serial.print((unsigned long)polling[1] / polling[0]);
-    Serial.print(" (");
-    Serial.print(polling[0]);
+    Serial.print((float)polling[1] / (float)polling[0]);
+    Serial.print(" usecs (");
+    Serial.print((int)polling[0]);
     Serial.println(" total conversions)");
   }
   wdt_reset();
