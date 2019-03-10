@@ -65,7 +65,6 @@ void loop() {
 */
 void watchdogSetup(void) {
   SevenSegment.display(0);
-  Serial.println(0);
   cli();
   wdt_reset();
   // Enter Watchdog Configuration mode:
@@ -89,7 +88,6 @@ ISR(ADC_vect){
 ISR(WDT_vect) {
   wdtCount += 1;
   SevenSegment.display(wdtCount);
-  Serial.println(wdtCount);
   if (wdtCount < 3) {
     wdt_reset();
   }
