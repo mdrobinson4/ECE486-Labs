@@ -12,18 +12,17 @@ fourDigitDisplay SevenSegment;
 
 
 // ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
-#define POLLING B10000111
-#define INTERRUPT B10001111
+#define POLLING 0b10000111
+#define INTERRUPT 0b10001111
 
 boolean volatile readFlag = false;
 float analogVal = 0;
-int wdtCount = 0;
+int wdtCount = 5;
 
 void setup() {
   Serial.begin(9600);
   Serial.println("Board Was Reset");
   reset();
-  wdtCount = 0;
   watchdogSetup();  // Configures watchdog timer
   adc_init();
 }
@@ -36,8 +35,21 @@ void loop() {
 
   while (1) {
     while (Serial.available() > 0) {
+      if (wdtCount == 0) {
+        wdt_disable();
+        cli();
+        // Enter Watchdog Configuration mode:
+        WDTCSR |= (1 << WDCE) | (1 << WDE);
+        WDTCSR = (1 << WDIE) | (0 << WDE) | (0 << WDP3) | (1 << WDP2) | (1 << WDP1) | (0 << WDP0);
+        sei();
+        Serial.println(WDTCSR);
+      }
+      
       wdt_reset();
-      wdtCount = -1;
+      wdtCount = 4;
+      SevenSegment.display(wdtCount);
+      
+ 
       char inChar = Serial.read();
       if (inChar != '\n') {
         inString += (char)inChar;
@@ -64,7 +76,8 @@ void loop() {
    Functions: Sets the watchdog timer to 4 seconds
 */
 void watchdogSetup(void) {
-  SevenSegment.display(0);
+  wdtCount -= 1;
+  SevenSegment.display(wdtCount);
   cli();
   wdt_reset();
   // Enter Watchdog Configuration mode:
@@ -86,17 +99,18 @@ ISR(ADC_vect){
               and restarts the board after 4 seconds
 */
 ISR(WDT_vect) {
-  wdtCount += 1;
+  wdtCount -= 1;
   SevenSegment.display(wdtCount);
-  if (wdtCount < 3) {
-    wdt_reset();
-  }
-  else {
+  
+  if (wdtCount == 0) {
     cli();
     wdt_reset();
     // Enter Watchdog Configuration mode:
     WDTCSR |= (1 << WDCE) | (1 << WDE);
     sei();
+  }
+  else {
+    wdt_reset();
   }
 }
 
@@ -110,15 +124,15 @@ void adc_init() {
   ADMUX = (1 << REFS0);
   // ADC Enable and prescaler of 128
   // 16000000/128 = 125000
-  ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+  enablePolling();
 }
 
 void enableInterrupt() {
-  ADCSRA = INTERRUPT;
+  ADCSRA = 0b10001111;
 }
 
-void disableInterrupt() {
-  ADCSRA = POLLING;
+void enablePolling() {
+  ADCSRA = 0b10000111;
 }
 
 /*Name: startMessage
@@ -146,7 +160,7 @@ void reset() {
   Serial.println("Select a type of conversion to perform ('a' for lab #4, 'b' for lab #5, and 'c' for lab #6)");
   Serial.println();
   wdt_reset();
-  wdtCount = -1;
+  wdtCount = 5;
   return;
 }
 
@@ -162,17 +176,15 @@ void convert(char method, float polling[], float analog[], float interrupt[]) {
   float tempTime[30];
   int value = 0;
   char hex[50] = {0};
+  readFlag = false;
   
   for (int i = 0; i < 30; i++) {
     tempTime[i] = performADC(method, i);
     delay(500);
     wdt_reset();
-    wdtCount = -1;
+    wdtCount = 5;
   }
-  wdtCount = -1;
-  
-  ADCSRA &= (0 << ADSC);
-  disableInterrupt();
+  wdtCount = 5;
   
   float avg = getAverageTime(tempTime);
 
@@ -227,22 +239,26 @@ int performADC(char method, int count) {
   else {
     ADMUX = (ADMUX & 0xF8)|(0 & 0b00000111); // clears the bottom 3 bits before ORing
     if (method == 'b') {
+      if (count == 0) {
+        enablePolling();
+      }
+      ADCSRA |= (1<<ADSC);
       lenTime = micros();
       while(ADCSRA & (1<<ADSC));
       lenTime = micros() - lenTime;
-      value = ADC;
+      value = ADCL | (ADCH << 8);
     }
     else if (method == 'c') {
-      if (count == 0)
+      if (count == 0) {
+        ADCSRA |= 1 << ADIF;
         enableInterrupt();
-      lenTime = micros();
+      }
       ADCSRA |= (1<<ADSC);
+      lenTime = micros();
       while (readFlag == false);
-      value = ADCL | (ADCH << 8);
       lenTime = micros() - lenTime;
+      value = ADCL | (ADCH << 8);
       readFlag = false;
-      if (count == 29)
-        disableInterrupt();
     }
   }
   displayADC(value, count, lenTime);
