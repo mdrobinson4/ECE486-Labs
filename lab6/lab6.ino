@@ -253,11 +253,11 @@ int performADC(char method, int count) {
         ADCSRA |= 1 << ADIF;
         enableInterrupt();
       }
-      ADCSRA |= (1<<ADSC);
       lenTime = micros();
+      ADCSRA |= (1<<ADSC);
       while (readFlag == false);
-      lenTime = micros() - lenTime;
       value = ADCL | (ADCH << 8);
+      lenTime = micros() - lenTime;
       readFlag = false;
     }
   }
@@ -318,5 +318,6 @@ void totals(float analog[], float polling[], float interrupt[]) {
     Serial.print((int)interrupt[0] * 30);
     Serial.println(" total conversions)");
   }
+  Serial.println();
   wdt_reset();
 }
