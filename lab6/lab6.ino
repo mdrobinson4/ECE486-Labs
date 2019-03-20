@@ -1,7 +1,7 @@
 /*Author: Mark Robinson
    CWID: 11635959
-   Lab: Lab 5
-   Date: March 08, 2019
+   Lab: Lab 6
+   Date: March 19, 2019
 */
 
 #include <avr/wdt.h>
@@ -15,8 +15,9 @@ fourDigitDisplay SevenSegment;
 #define POLLING 0b10000111
 #define INTERRUPT 0b10001111
 
-boolean volatile readFlag = false;
-float analogVal = 0;
+// Global variables -> All used in ISR / WDT
+float volatile value = 0;
+float volatile lenTime = 0;
 int wdtCount = 5;
 
 void setup() {
@@ -88,8 +89,15 @@ void watchdogSetup(void) {
 }
 
 // Interrupt service routine for the ADC completion
+/*Name: ISR
+   Inputs: uint_18
+   Outputs: void
+   Functions: Interrupt service routine for the ADC completion
+*/
 ISR(ADC_vect){
-  readFlag = true;
+  value = ADCL | (ADCH << 8);
+  lenTime = micros() - lenTime;
+  ADCSRA |= 1 << ADIF;
 }
 
 /*Name: Watchdog Timer ISR
@@ -120,17 +128,25 @@ ISR(WDT_vect) {
    Functions: Initializes the analog to digital converter
 */
 void adc_init() {
-  // AREF = AVcc
   ADMUX = (1 << REFS0);
   // ADC Enable and prescaler of 128
-  // 16000000/128 = 125000
   enablePolling();
 }
 
+/*Name: enableInterrupt
+   Inputs: void
+   Outputs: void
+   Functions: enables intterupt driven adc
+*/
 void enableInterrupt() {
   ADCSRA = 0b10001111;
 }
 
+/*Name: enablePolling
+   Inputs: void
+   Outputs: void
+   Functions: enables polling driven adc
+*/
 void enablePolling() {
   ADCSRA = 0b10000111;
 }
@@ -174,9 +190,8 @@ void reset() {
 void convert(char method, float polling[], float analog[], float interrupt[]) {
   startMessage(method);
   float tempTime[30];
-  int value = 0;
+  // int value = 0;
   char hex[50] = {0};
-  readFlag = false;
   
   for (int i = 0; i < 30; i++) {
     tempTime[i] = performADC(method, i);
@@ -203,6 +218,11 @@ void convert(char method, float polling[], float analog[], float interrupt[]) {
   wdt_reset();
 }
 
+/*Name: update Totals
+   Inputs: char, float, float, float, float
+   Outputs: void
+   Functions: updates the running totals of each conversion technique
+*/
 void updateTotals(char method, float avg, float analog[], float polling[], float interrupt[]) {
   if (method == 'a') {
     analog[0] += 1.00;
@@ -218,6 +238,11 @@ void updateTotals(char method, float avg, float analog[], float polling[], float
   }
 }
 
+/*Name: getAverageTime
+   Inputs: float
+   Outputs: float
+   Functions: calculates the average conversion time
+*/
 float getAverageTime(float tempTime[]) {
   float avg = 0.0;
   for (int i = 0; i < 30; i++) {
@@ -227,9 +252,14 @@ float getAverageTime(float tempTime[]) {
   return avg / 30.0;
 }
 
+/*Name: performADC
+   Inputs: char, int
+   Outputs: int
+   Functions: Performs adc using the specified 'method'
+*/
 int performADC(char method, int count) {
-  int value = 0;
-  float lenTime = 0;
+  // int value = 0;
+  // float lenTime = 0;
   
   if (method == 'a') {
      lenTime = micros();
@@ -250,19 +280,34 @@ int performADC(char method, int count) {
     }
     else if (method == 'c') {
       if (count == 0) {
-        ADCSRA |= 1 << ADIF;
+        // ADCSRA |= 1 << ADIF;
         enableInterrupt();
       }
-      lenTime = micros();
+      value = -1;
       ADCSRA |= (1<<ADSC);
-      while (readFlag == false);
-      value = ADCL | (ADCH << 8);
-      lenTime = micros() - lenTime;
-      readFlag = false;
+      lenTime = micros();
+      foreground();
+      // while (readFlag == false);
+      // value = ADCL | (ADCH << 8);
+      // lenTime = micros() - lenTime;
     }
   }
   displayADC(value, count, lenTime);
   return lenTime;
+}
+
+/*Name: foreground
+   Inputs: void
+   Outputs: void
+   Functions: Code that will execute while the analog 
+   input value is being converted to an analog value
+*/
+void foreground() {
+  while (value == -1) {
+    // Do something
+    Serial.print('.');
+  }
+  return;
 }
 
 void displayADC(int value, int count, int lenTime) {
