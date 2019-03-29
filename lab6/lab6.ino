@@ -1,7 +1,7 @@
 /*Author: Mark Robinson
    CWID: 11635959
    Lab: Lab 6
-   Date: March 19, 2019
+   Date: March 22, 2019
 */
 
 #include <avr/wdt.h>
@@ -26,6 +26,7 @@ void setup() {
   reset();
   watchdogSetup();  // Configures watchdog timer
   adc_init();
+  SevenSegment.setMode(0);
 }
 
 void loop() {
@@ -43,7 +44,6 @@ void loop() {
         WDTCSR |= (1 << WDCE) | (1 << WDE);
         WDTCSR = (1 << WDIE) | (0 << WDE) | (0 << WDP3) | (1 << WDP2) | (1 << WDP1) | (0 << WDP0);
         sei();
-        Serial.println(WDTCSR);
       }
       
       wdt_reset();
@@ -95,9 +95,9 @@ void watchdogSetup(void) {
    Functions: Interrupt service routine for the ADC completion
 */
 ISR(ADC_vect){
-  value = ADCL | (ADCH << 8);
   lenTime = micros() - lenTime;
   ADCSRA |= 1 << ADIF;
+  value = ADC;
 }
 
 /*Name: Watchdog Timer ISR
@@ -199,6 +199,8 @@ void convert(char method, float polling[], float analog[], float interrupt[]) {
     wdt_reset();
     wdtCount = 5;
   }
+  if (method == 'c')
+    enablePolling();
   wdtCount = 5;
   
   float avg = getAverageTime(tempTime);
@@ -258,9 +260,10 @@ float getAverageTime(float tempTime[]) {
    Functions: Performs adc using the specified 'method'
 */
 int performADC(char method, int count) {
-  // int value = 0;
-  // float lenTime = 0;
-  
+  ADCSRA |= 1 << ADIF;
+  if (count == 0) {
+    enablePolling();
+  }
   if (method == 'a') {
      lenTime = micros();
      value = analogRead(0);
@@ -269,9 +272,6 @@ int performADC(char method, int count) {
   else {
     ADMUX = (ADMUX & 0xF8)|(0 & 0b00000111); // clears the bottom 3 bits before ORing
     if (method == 'b') {
-      if (count == 0) {
-        enablePolling();
-      }
       ADCSRA |= (1<<ADSC);
       lenTime = micros();
       while(ADCSRA & (1<<ADSC));
@@ -279,17 +279,12 @@ int performADC(char method, int count) {
       value = ADCL | (ADCH << 8);
     }
     else if (method == 'c') {
-      if (count == 0) {
-        // ADCSRA |= 1 << ADIF;
+      if (count == 0)
         enableInterrupt();
-      }
       value = -1;
-      ADCSRA |= (1<<ADSC);
       lenTime = micros();
-      foreground();
-      // while (readFlag == false);
-      // value = ADCL | (ADCH << 8);
-      // lenTime = micros() - lenTime;
+      ADCSRA |= (1<<ADSC);
+      foreground(count);
     }
   }
   displayADC(value, count, lenTime);
@@ -302,14 +297,21 @@ int performADC(char method, int count) {
    Functions: Code that will execute while the analog 
    input value is being converted to an analog value
 */
-void foreground() {
+void foreground(int i) {
+  SevenSegment.setMode(1);
   while (value == -1) {
-    // Do something
-    Serial.print('.');
+    SevenSegment.display(i%6);
   }
+  SevenSegment.setMode(0);
   return;
 }
 
+
+/*Name: displayADC
+   Inputs: int, int, int
+   Outputs: void
+   Functions: Displays the adc values
+*/
 void displayADC(int value, int count, int lenTime) {
   char hex[5] = {0};
   Serial.print("#");
