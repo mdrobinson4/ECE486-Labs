@@ -34,6 +34,7 @@ MEMORY *readFile(FILE *fp) {
     }
     // Get Address
     fscanf(fp, "%d", &address);
+    // Store info into structure
   }
   return NULL;
 }
