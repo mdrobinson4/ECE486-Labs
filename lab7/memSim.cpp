@@ -9,7 +9,7 @@ using namespace std;
 
 class CacheBlock {
 private:
-		int cmBlockNumber, cmSetNumber, validBit, dirtyBit, tag, mmBlockNumber, hit, data;	// Cache block elements
+		int cmBlockNumber, cmSetNumber, validBit, dirtyBit, tag, mmBlockNumber, hit, data, cmBlockCount;	// Cache block elements
 		int age;	// Replacement policy utilities
 		char rPolicy;
 	public:
@@ -18,6 +18,8 @@ private:
 		int getTag();
 		char getRPolicy();
 		int getAge();
+		int getDirtyBit();
+		int getData();
 
 		void setAge(int);
 		int checkValid();
@@ -53,6 +55,14 @@ int CacheBlock::getTag() {
 	return this->tag;
 }
 
+int CacheBlock::getData() {
+	return this->data;
+}
+
+int CacheBlock::getDirtyBit() {
+	return this->dirtyBit;
+}
+
 int CacheBlock::getAge() {
 	return this->age;
 }
@@ -85,9 +95,92 @@ void CacheBlock::setData(int mmBlockNumber) {
 
 ////////////////////////////////////////////
 
+void printLabel() {
+	cout << endl;
+	cout << "main memory address";
+	cout << "        ";
+	cout << "mm blk #";
+	cout << "        ";
+	cout << "cm set #";
+	cout << "        ";
+	cout << "cm blk #";
+	cout << "        ";
+	cout << "hit/miss";
+	cout << endl;
+	cout << "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾";
 
-void printChart() {
-	
+	cout << endl;
+}
+
+
+void printChart(int mmAddress, int mmBlockNumber, int cmSetNumber, int cmBlockNumber, bool hit, int setStart, int setEnd, int mapping) {
+	//cout << endl << hit << endl;
+	cout << "        ";
+	cout << mmAddress;
+	cout << "                     ";
+	cout << mmBlockNumber;
+	cout << "                ";
+	cout << cmSetNumber;
+	cout << "            ";
+	if (mapping > 1) {
+		int i = 0;
+		for (i = setStart; i < setStart + mapping; i++) {
+			cout << i;
+			if (i + 1 < setEnd)
+				cout << " or ";
+		}
+	}
+	else
+		cout << cmBlockNumber;
+	cout << "          ";
+	if (hit == true)
+		cout << "hit";
+	else if (hit == false)
+		cout << "miss";
+	cout << endl;
+}
+
+void displayCache(CacheBlock cm[], int cmBlockCount) {
+	cout << "Cache blk #     ";
+	cout << "dirty bit       ";
+	cout << "valid bit       ";
+	cout << "tag       ";
+	cout << "Data" << endl;
+	cout << "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾" << endl;
+
+	for (int i = 0; i < cmBlockCount; i++) {
+		cout << i;
+		cout << "           ";
+		cout << cm[i].getDirtyBit();
+		cout << "            ";
+		cout << cm[i].checkValid();
+		cout << "             ";
+		if (cm[i].checkValid() == 1)
+			cout << cm[i].getTag();
+		else
+			cout << "x";
+		cout << "             ";
+		if (cm[i].checkValid() == 1)
+			cout << cm[i].getData();
+		else
+			cout << "x";
+		cout << endl;
+	}
+}
+
+
+int maxHitRate(int refs[], int refCount) {
+	int dupCount = 0;
+	int countHelp[refCount] = {0};
+	for (int i = 0; i < refCount - 1; i++) {
+		for (int j = i + 1; j < refCount; j++) {
+			if (refs[i] == refs[j] && countHelp[j] == 0) {
+				countHelp[j] = 1;
+				dupCount += 1;
+			}
+		}
+	}
+	return dupCount;
 }
 
 int calculateLines(int mmSize) {
@@ -149,12 +242,13 @@ void replaceBlock(CacheBlock cm[], int mmBlockNumber, int tag, char operation, i
 		cm[index].setDirtyBit(1);
 }
 
-void performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount, int mapping, int lines, int tag, int operation, int opCount) {
+bool performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount, int mapping, int lines, int tag, int operation, int opCount) {
 	int mmBlockNumber = mmAddress / cbSize;				// Corresponding main memory block
 	int cmSetNumber = mmBlockNumber % cmSetCount;	// Figure out which set we want
 	int setStart = cmSetNumber * mapping;	// Get the first block in the set
 
 	int tagValue = getTagBits(mmAddress, lines, tag);		// Get the tag bits
+	//cout << endl << "TAG VALUE : " << tagValue << endl;
 
 	char rPolicy = cm[0].getRPolicy();
 
@@ -169,11 +263,15 @@ void performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 	int i = 0, currTag = 0, valid = 0;
 	bool hit = false;
 
+	if (opCount == 0)
+		printLabel();
+
 	for (i = setStart; i < setStart + mapping; i++) {
 		valid = cm[i].checkValid();
 
 		if (valid == 1) {						// Bit is valid
 			currTag = cm[i].getTag();
+			//cout << endl << "CURR TAG : " << currTag << endl;
 			if (tagValue == currTag) {	// We found the tag that we're looking for
 				hit = true;
 				if (operation == 'R') {
@@ -190,23 +288,23 @@ void performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 						cm[i].setDirtyBit(1);
 					}
 				}
+				printChart(mmAddress, mmBlockNumber, cmSetNumber, i, hit, setStart, setStart + mapping, mapping);
+				return hit;
 			}
-			// Print Chart
-			return;
 		}
 		else if (valid == 0) {
 			hit = false;
-			replaceBlock(cm, mmBlockNumber, tag, operation, i);
-			// Print Chart
-			return;
+			replaceBlock(cm, mmBlockNumber, tagValue, operation, i);
+			printChart(mmAddress, mmBlockNumber, cmSetNumber, i, hit, setStart, setStart + mapping, mapping);
+			return hit;
 		}
 	}
 	// Set is full
 	int index = getOldestBlock(cm, setStart, setStart + mapping);
 	hit = false;
 	replaceBlock(cm, mmBlockNumber, tag, operation, index);
-	// Print Chart
-	return;
+	printChart(mmAddress, mmBlockNumber, cmSetNumber, index, hit, setStart, setStart + mapping, mapping);
+	return hit;
 }
 
 
@@ -258,6 +356,8 @@ int main() {
 	int opCount = 0;
 	char operation = 'R';
 	int mmAddress = 0;
+	int hitCount = 0;
+	bool hit = false;
 	//
 
 	string line;
@@ -265,17 +365,30 @@ int main() {
 	cout << endl;
 
 	file >> refCount;
+	int refs[refCount] = {0};
 
 	for (int i = 0; i < refCount; i++) {
 		file >> operation;
 		operation = toupper(operation);
 		file >> mmAddress;
-		performOperation(cm, mmAddress, cbSize, cmSetCount, mapping, lines, tag, operation, i);
+		hit = performOperation(cm, mmAddress, cbSize, cmSetCount, mapping, lines, tag, operation, i);
+		refs[i] = mmAddress / cbSize;
 
 		//cout << "Operation: " << operation << endl;
 		//cout << "MM Address: " << mmAddress << endl;
+		if (hit == true)
+			hitCount += 1;
 	}
+	int mHR = maxHitRate(refs, refCount);
+	cout << endl;
+	cout << "Highest possible hit rate = " << mHR << "/" << refCount;
+	cout << " = " << (float(mHR) / refCount) * 100 << "%";
+	cout << endl;
+	cout << "Actual hit rate = " << hitCount << "/" << refCount;
+	cout << " = " << (float(hitCount) / refCount) * 100 << "%" << endl;
 
+	cout << endl;
+	cout << "Final \"status\" of the cache:" << endl;
 
-	// performOperation(cm, mmAddress, cbSize, cmSetCount, mapping, lines, tag, operation, opCount);
+	displayCache(cm, cmBlockCount);
 }
