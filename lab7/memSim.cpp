@@ -119,7 +119,9 @@ void printChart(int mmAddress, int mmBlockNumber, int cmSetNumber, int cmBlockNu
 	//cout << endl << hit << endl;
 	cout << "        ";
 	cout << mmAddress;
-	cout << "                     ";
+	if (mmAddress < 10)
+		cout << " ";
+	cout << "                    ";
 	cout << mmBlockNumber;
 	cout << "                ";
 	cout << cmSetNumber;
@@ -152,12 +154,15 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 	cout << "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾" << endl;
 
 	for (int i = 0; i < cmBlockCount; i++) {
+		cout << "      ";
 		cout << i;
-		cout << "           ";
-		cout << cm[i].getDirtyBit();
+		if (i < 10)
+			cout << " ";
 		cout << "            ";
+		cout << cm[i].getDirtyBit();
+		cout << "               ";
 		cout << cm[i].checkValid();
-		cout << "             ";
+		cout << "           ";
 		int tag = cm[i].getTag();
 		str = "";
 		for (int j = 0; j < tagSize; j++) {
@@ -170,7 +175,7 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 		}
 		reverse(str.begin(), str.end());
 		cout << str;
-		cout << "             ";
+		cout << "     ";
 
 		str = "";
 		int data = cm[i].getData();
@@ -180,7 +185,7 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 			for (int j = 0; j < log2(mmBlockCount); j++) {
 					str += 'x';
 			}
-			cout << "xxx";
+			cout << "   xxx";
 		}
 		cout << endl;
 	}
@@ -250,10 +255,11 @@ int getOldestBlock(CacheBlock cm[], int setStart, int setEnd) {
 	return index;
 }
 
-void replaceBlock(CacheBlock cm[], int mmBlockNumber, int tag, char operation, int index) {
+void replaceBlock(CacheBlock cm[], int mmBlockNumber, int tag, char operation, int index, int opCount) {
 	cm[index].setData(mmBlockNumber);
 	cm[index].setTag(tag);
 	cm[index].setValid();
+	cm[index].setAge(opCount);
 	if (operation == 'R')
 		cm[index].setDirtyBit(0);
 	else if (operation == 'W')
@@ -312,7 +318,7 @@ bool performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 		}
 		else if (valid == 0) {
 			hit = false;
-			replaceBlock(cm, mmBlockNumber, tagValue, operation, i);
+			replaceBlock(cm, mmBlockNumber, tagValue, operation, i, opCount);
 			printChart(mmAddress, mmBlockNumber, cmSetNumber, i, hit, setStart, setStart + mapping, mapping);
 			return hit;
 		}
@@ -320,7 +326,7 @@ bool performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 	// Set is full
 	int index = getOldestBlock(cm, setStart, setStart + mapping);
 	hit = false;
-	replaceBlock(cm, mmBlockNumber, tag, operation, index);
+	replaceBlock(cm, mmBlockNumber, tagValue, operation, index, opCount);
 	printChart(mmAddress, mmBlockNumber, cmSetNumber, index, hit, setStart, setStart + mapping, mapping);
 	return hit;
 }
@@ -394,8 +400,6 @@ int main() {
 			hit = performOperation(cm, mmAddress, cbSize, cmSetCount, mapping, lines, tag, operation, i);
 			refs[i] = mmAddress / cbSize;
 
-			//cout << "Operation: " << operation << endl;
-			//cout << "MM Address: " << mmAddress << endl;
 			if (hit == true)
 				hitCount += 1;
 		}
