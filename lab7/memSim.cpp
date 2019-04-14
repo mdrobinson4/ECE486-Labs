@@ -117,15 +117,31 @@ void printLabel() {
 
 void printChart(int mmAddress, int mmBlockNumber, int cmSetNumber, int cmBlockNumber, bool hit, int setStart, int setEnd, int mapping) {
 	//cout << endl << hit << endl;
+	int spaces = 0;
 	cout << "        ";
 	cout << mmAddress;
-	if (mmAddress < 10)
+
+	spaces = 5 - (mmAddress > 0 ? (int) log10 ((double) mmAddress) + 1 : 1);
+	while (spaces > 0) {
 		cout << " ";
-	cout << "                    ";
+		spaces--;
+	}
+
+	cout << "                 ";
 	cout << mmBlockNumber;
-	cout << "                ";
+	spaces = 5 - (mmBlockNumber > 0 ? (int) log10 ((double) mmBlockNumber) + 1 : 1);
+	while (spaces > 0) {
+		cout << " ";
+		spaces--;
+	}
+	cout << "           ";
 	cout << cmSetNumber;
-	cout << "            ";
+	spaces = 5 - (cmSetNumber > 0 ? (int) log10 ((double) cmSetNumber) + 1 : 1);
+	while (spaces > 0) {
+		cout << " ";
+		spaces--;
+	}
+	cout << "       ";
 	if (mapping > 1) {
 		int i = 0;
 		for (i = setStart; i < setStart + mapping; i++) {
@@ -156,6 +172,8 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 	for (int i = 0; i < cmBlockCount; i++) {
 		cout << "      ";
 		cout << i;
+
+
 		if (i < 10)
 			cout << " ";
 		cout << "            ";
@@ -178,7 +196,6 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 		cout << "     ";
 
 		str = "";
-		int data = cm[i].getData();
 		if (cm[i].checkValid() == 1)
 			cout << "mm blk # " <<  cm[i].getData();
 		else {
@@ -194,7 +211,7 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 
 int maxHitRate(int refs[], int refCount) {
 	int dupCount = 0;
-	int countHelp[refCount] = {0};
+	int countHelp[refCount];
 	for (int i = 0; i < refCount - 1; i++) {
 		for (int j = i + 1; j < refCount; j++) {
 			if (refs[i] == refs[j] && countHelp[j] == 0) {
@@ -339,6 +356,7 @@ int main() {
 	string inputFile;
 
 	while (flag == 'y') {
+		flag = '0';
 
 		cout << "Enter the size of main memory in bytes: ";
 		cin >> mmSize;
@@ -378,11 +396,8 @@ int main() {
 		}
 
 		//
-		int refCount = 0;
-		int opCount = 0;
+		int refCount = 0, mmAddress = 0, hitCount = 0;
 		char operation = 'R';
-		int mmAddress = 0;
-		int hitCount = 0;
 		bool hit = false;
 		//
 
@@ -415,13 +430,18 @@ int main() {
 		cout << "Final \"status\" of the cache:" << endl;
 
 		displayCache(cm, cmBlockCount, tag, mmSize/cbSize);
+		file.close();
+
+		do {
+			cout << endl;
+			cout << "Continue? (y = yes, n = no): ";
+			cin >> flag;
+			flag = tolower(flag);
+		} while (flag != 'y' && flag != 'n');
 
 		cout << endl;
-		cout << "Continue? (y = yes, n = no): ";
-		cin >> flag;
-		flag = tolower(flag);
 
 		if (flag == 'n')
-			cout << endl << "(program exits)" << endl;
+			cout << "(program exits)" << endl;
 	}
 }
