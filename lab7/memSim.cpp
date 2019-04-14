@@ -211,7 +211,7 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 
 int maxHitRate(int refs[], int refCount) {
 	int dupCount = 0;
-	int countHelp[refCount];
+	int countHelp[refCount] = {0};
 	for (int i = 0; i < refCount - 1; i++) {
 		for (int j = i + 1; j < refCount; j++) {
 			if (refs[i] == refs[j] && countHelp[j] == 0) {
@@ -304,8 +304,8 @@ bool performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 	int i = 0, currTag = 0, valid = 0;
 	bool hit = false;
 
-	if (opCount == 0)
-		printLabel();
+	//if (opCount == 0)
+		//printLabel();
 
 	for (i = setStart; i < setStart + mapping; i++) {
 		valid = cm[i].checkValid();
@@ -355,7 +355,7 @@ int main() {
 	char rPolicy, flag = 'y';
 	string inputFile;
 
-	while (flag == 'y') {
+	while (flag == 'y' || flag == 'Y') {
 		flag = '0';
 
 		cout << "Enter the size of main memory in bytes: ";
@@ -408,6 +408,7 @@ int main() {
 		file >> refCount;
 		int refs[refCount] = {0};
 
+		printLabel();
 		for (int i = 0; i < refCount; i++) {
 			file >> operation;
 			operation = toupper(operation);
@@ -421,10 +422,20 @@ int main() {
 		int mHR = maxHitRate(refs, refCount);
 		cout << endl;
 		cout << "Highest possible hit rate = " << mHR << "/" << refCount;
-		cout << " = " << (float(mHR) / refCount) * 100 << "%";
+		cout << " = ";
+		if (mHR > 0)
+			cout << (float(mHR) / refCount) * 100;
+		else
+			cout << 0;
+		cout << "%";
 		cout << endl;
 		cout << "Actual hit rate = " << hitCount << "/" << refCount;
-		cout << " = " << (float(hitCount) / refCount) * 100 << "%" << endl;
+		cout << " = ";
+		if (hitCount > 0)
+			cout << (float(hitCount) / refCount) * 100;
+		else
+			cout << 0;
+		cout << "%" << endl;
 
 		cout << endl;
 		cout << "Final \"status\" of the cache:" << endl;
