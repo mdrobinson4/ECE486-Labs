@@ -1,3 +1,12 @@
+/*
+	Author: Mark D.R. Robinson
+	CWID: 11635959
+	Lab: #7 - Memory Simulator
+	Date: April 15, 2019
+*/
+
+
+
 #include <iostream>
 #include <cstring>
 #include <string.h>
