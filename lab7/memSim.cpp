@@ -186,7 +186,10 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 		if (i < 10)
 			cout << " ";
 		cout << "            ";
-		cout << cm[i].getDirtyBit();
+		if (cm[i].checkValid() == 0)
+			cout << "x";
+		else
+			cout << cm[i].getDirtyBit();
 		cout << "               ";
 		cout << cm[i].checkValid();
 		cout << "           ";
@@ -270,7 +273,7 @@ int getTagBits(int mmAddress, int lines, int tag) {
 }
 
 int getOldestBlock(CacheBlock cm[], int setStart, int setEnd) {
-	int i = 0, index = 0, smallestAge = 0;
+	int i = 0, index = setStart, smallestAge = 0;
 	smallestAge = cm[setStart].getAge();
 	for (i = setStart; i < setEnd; i++) {
 		if (smallestAge > cm[i].getAge()) {
@@ -298,10 +301,8 @@ bool performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 	int setStart = cmSetNumber * mapping;	// Get the first block in the set
 
 	int tagValue = getTagBits(mmAddress, lines, tag);		// Get the tag bits
-	//cout << endl << "TAG VALUE : " << tagValue << endl;
 
 	char rPolicy = cm[0].getRPolicy();
-
 	/*
 	cout << endl;
 	cout << "Main Memory Block Number : " << mmBlockNumber << endl;
@@ -312,9 +313,6 @@ bool performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 
 	int i = 0, currTag = 0, valid = 0;
 	bool hit = false;
-
-	//if (opCount == 0)
-		//printLabel();
 
 	for (i = setStart; i < setStart + mapping; i++) {
 		valid = cm[i].checkValid();
