@@ -2,12 +2,13 @@
 	Author: Mark D.R. Robinson
 	CWID: 11635959
 	Lab: #7 - Memory Simulator
-	Date: April 15, 2019
+	Date: April 17, 2019
 */
 
 
 
 #include <iostream>
+#include <iomanip>
 #include <cstring>
 #include <string.h>
 #include <stdio.h>
@@ -54,12 +55,6 @@ void CacheBlock::initBlock(int blockNum, int setNum, char rPolicy) {
 	this->cmBlockNumber = blockNum;
 	this->cmSetNumber = setNum;
 	this->rPolicy = rPolicy;
-
-/*
-	cout << endl;
-	cout << "Block Number: " << cmBlockNumber << endl;
-	cout << "Set Number : " << cmSetNumber << endl;
-	*/
 }
 
 int CacheBlock::getTag() {
@@ -104,8 +99,6 @@ void CacheBlock::setData(int mmBlockNumber) {
 	this->data = mmBlockNumber;
 }
 
-////////////////////////////////////////////
-
 void printLabel() {
 	cout << endl;
 	cout << "main memory address";
@@ -123,77 +116,72 @@ void printLabel() {
 	cout << endl;
 }
 
+void printField(int field, int consoleWidth) {
+	int spaces = (field > 0 ? (int) log10 ((double) field) + 1 : 1);
+	spaces = spaces / 2;
+	cout << setw(22) << left << field;
+	if ((spaces % 2) == 0)
+		cout << " ";
+}
+
 
 void printChart(int mmAddress, int mmBlockNumber, int cmSetNumber, int cmBlockNumber, bool hit, int setStart, int setEnd, int mapping) {
-	//cout << endl << hit << endl;
-	int spaces = 0;
-	cout << "        ";
-	cout << mmAddress;
+	int spaces = 0, consoleWidth = 80;
+	consoleWidth = consoleWidth / 2;
 
-	spaces = 5 - (mmAddress > 0 ? (int) log10 ((double) mmAddress) + 1 : 1);
-	while (spaces > 0) {
-		cout << " ";
-		spaces--;
-	}
+	cout<<setw(8)<<left << "";
+	cout << setw(21) << left << mmAddress;
+	cout << setw(17) << left << mmBlockNumber;
+	cout << setw(14) << left << cmSetNumber;
 
-	cout << "                 ";
-	cout << mmBlockNumber;
-	spaces = 5 - (mmBlockNumber > 0 ? (int) log10 ((double) mmBlockNumber) + 1 : 1);
-	while (spaces > 0) {
-		cout << " ";
-		spaces--;
-	}
-	cout << "           ";
-	cout << cmSetNumber;
-	spaces = 5 - (cmSetNumber > 0 ? (int) log10 ((double) cmSetNumber) + 1 : 1);
-	while (spaces > 0) {
-		cout << " ";
-		spaces--;
-	}
-	cout << "       ";
-	if (mapping > 1) {
-		int i = 0;
-		for (i = setStart; i < setStart + mapping; i++) {
-			cout << i;
-			if (i + 1 < setEnd)
-				cout << " or ";
-		}
-	}
+	int i = 0;
+	string str = "";
+
+	if (mapping == 0)
+		str = cmSetNumber;
 	else
-		cout << cmBlockNumber;
-	cout << "          ";
-	if (hit == true)
-		cout << "hit";
-	else if (hit == false)
-		cout << "miss";
+		str = to_string(setStart) + "-" + to_string(setStart + mapping - 1);
+
+	cout << setw(17) << left << str;
+
+	if (hit == true) cout << "hit";
+	else cout << "miss";
 	cout << endl;
+}
+
+unsigned int countBits(unsigned int n) {
+	unsigned int count = 0;
+	while (n) {
+		count += n & 1;
+	  n >>= 1;
+	}
+	return count;
 }
 
 void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCount) {
 	string str;
 	cout << "Cache blk #     ";
 	cout << "dirty bit       ";
-	cout << "valid bit       ";
-	cout << "tag       ";
+	cout << "valid bit      ";
+	cout << "tag                     ";
 	cout << "Data" << endl;
 	cout << "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾" << endl;
 
 	for (int i = 0; i < cmBlockCount; i++) {
-		cout << "      ";
-		cout << i;
+		cout << setw(5) << "";
+		cout << setw(15) << i;
 
-
-		if (i < 10)
-			cout << " ";
-		cout << "            ";
 		if (cm[i].checkValid() == 0)
-			cout << "x";
+			cout << setw(16) << "x";
 		else
-			cout << cm[i].getDirtyBit();
-		cout << "               ";
+			cout << setw(16) << cm[i].getDirtyBit();
+
 		cout << cm[i].checkValid();
-		cout << "           ";
+
 		int tag = cm[i].getTag();
+
+		int spaces = countBits(tag);
+
 		str = "";
 		for (int j = 0; j < tagSize; j++) {
 			if (cm[i].checkValid() == 1) {
@@ -204,18 +192,24 @@ void displayCache(CacheBlock cm[], int cmBlockCount, int tagSize, int mmBlockCou
 				str += 'x';
 		}
 		reverse(str.begin(), str.end());
+
+		cout << setw(((15 - tagSize) / 2) + 5) << "";
 		cout << str;
-		cout << "     ";
+		cout << setw(((15 - tagSize) / 2) + 5) << "";
 
 		str = "";
-		if (cm[i].checkValid() == 1)
-			cout << "mm blk # " <<  cm[i].getData();
-		else {
-			for (int j = 0; j < log2(mmBlockCount); j++) {
-					str += 'x';
-			}
-			cout << "   xxx";
+		if (cm[i].checkValid() == 1) {
+			str += "mm blk # ";
+			str += to_string(cm[i].getData());
 		}
+		else {
+			for (int j = 0; j < log2(mmBlockCount); j++)
+					str += "x";
+			str = "xxx";
+		}
+		cout << setw(((15 - str.length()) / 2) + 5) << "";
+		cout << str;
+		cout << setw(((15 - str.length()) / 2) + 5) << "";
 		cout << endl;
 	}
 }
@@ -303,13 +297,6 @@ bool performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 	int tagValue = getTagBits(mmAddress, lines, tag);		// Get the tag bits
 
 	char rPolicy = cm[0].getRPolicy();
-	/*
-	cout << endl;
-	cout << "Main Memory Block Number : " << mmBlockNumber << endl;
-	cout << "Set Number : " << cmSetNumber << endl;
-	cout  << "First Index In Set : " << setStart << endl;
-	cout << "Tag Value : " << tagValue << endl;
-	*/
 
 	int i = 0, currTag = 0, valid = 0;
 	bool hit = false;
