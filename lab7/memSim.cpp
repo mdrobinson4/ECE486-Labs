@@ -2,7 +2,7 @@
 	Author: Mark D.R. Robinson
 	CWID: 11635959
 	Lab: #7 - Memory Simulator
-	Date: April 17, 2019
+	Date: April 19, 2019
 */
 
 
@@ -137,8 +137,8 @@ void printChart(int mmAddress, int mmBlockNumber, int cmSetNumber, int cmBlockNu
 	int i = 0;
 	string str = "";
 
-	if (mapping == 0)
-		str = cmSetNumber;
+	if (mapping == 1)
+		str = to_string(cmSetNumber);
 	else
 		str = to_string(setStart) + "-" + to_string(setStart + mapping - 1);
 
@@ -344,12 +344,14 @@ bool performOperation(CacheBlock cm[], int mmAddress, int cbSize, int cmSetCount
 
 
 int main() {
-	int mmSize = 0, cmSize = 0, cbSize = 0, mapping = 0;
-	int lines = 0, offset = 0, index = 0, tag = 0, totalCmSize = 0;
-	char rPolicy, flag = 'y';
-	string inputFile;
+	char flag = 'y';
 
 	while (flag == 'y' || flag == 'Y') {
+		int mmSize = 0, cmSize = 0, cbSize = 0, mapping = 0;
+		int lines = 0, offset = 0, index = 0, tag = 0, totalCmSize = 0;
+		char rPolicy;
+		string inputFile;
+
 		flag = '0';
 
 		cout << "Enter the size of main memory in bytes: ";
@@ -389,11 +391,9 @@ int main() {
 			}
 		}
 
-		//
 		int refCount = 0, mmAddress = 0, hitCount = 0;
 		char operation = 'R';
 		bool hit = false;
-		//
 
 		string line;
 		ifstream file(inputFile);
